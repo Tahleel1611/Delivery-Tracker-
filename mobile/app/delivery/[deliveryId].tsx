@@ -31,8 +31,8 @@ export default function DeliveryDetailsScreen() {
         proofUri = capture.assets[0].uri;
       }
 
-      const delivery = await updateDeliveryStatus(params.deliveryId, params.driverId, nextStatus);
-      if (proofUri) await uploadProofOfDelivery(params.deliveryId, params.driverId, proofUri);
+      const delivery = await updateDeliveryStatus(params.deliveryId, nextStatus);
+      if (proofUri) await uploadProofOfDelivery(params.deliveryId, proofUri);
       setStatus(delivery.status);
       Alert.alert('Status updated', proofUri ? 'Delivery marked complete and Proof of Delivery uploaded.' : `${params.orderRef} is now ${delivery.status.replaceAll('_', ' ')}.`);
     } catch (requestError) {

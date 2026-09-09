@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import { loginDriver } from '../services/api';
 
 export default function LoginScreen() {
   const [driverId, setDriverId] = useState('');
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!driverId.trim()) {
       Alert.alert('Driver ID required', 'Enter the UUID assigned to this driver.');
       return;
     }
 
-    router.replace({ pathname: '/manifest', params: { driverId: driverId.trim() } });
+    try {
+      await loginDriver(driverId.trim());
+      router.replace({ pathname: '/manifest', params: { driverId: driverId.trim() } });
+    } catch (error) {
+      Alert.alert('Sign in failed', error instanceof Error ? error.message : 'Unable to sign in.');
+    }
   }
 
   return (
@@ -28,7 +34,7 @@ export default function LoginScreen() {
         onChangeText={setDriverId}
         style={styles.input}
       />
-      <Pressable style={styles.primaryButton} onPress={handleLogin}>
+      <Pressable style={styles.primaryButton} onPress={() => void handleLogin()}>
         <Text style={styles.primaryButtonText}>View manifest</Text>
       </Pressable>
     </View>

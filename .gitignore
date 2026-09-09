@@ -3,5 +3,7 @@ node_modules/
 dist/
 .env
 .env.local
+.dockerignore
+plan.md
 coverage/
 *.log

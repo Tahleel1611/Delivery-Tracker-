@@ -24,6 +24,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://tracking:tracking_password@postgres:5432/tracking?schema=public
       LEGACY_WEBHOOK_API_KEY: local-development-key-change-me
+      DRIVER_JWT_SECRET: local-driver-jwt-secret-change-me-at-least-32-chars
+      DRIVER_JWT_TTL: 8h
       CORS_ORIGIN: http://localhost:3001
       TRACKING_WEB_BASE_URL: http://localhost:3001
       TRACKING_TOKEN_TTL_DAYS: 30

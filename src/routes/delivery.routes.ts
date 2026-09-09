@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { patchDeliveryStatus } from '../controllers/driver.controller';
 import { uploadProofOfDelivery } from '../controllers/pod.controller';
-import { requireLegacyApiKey } from '../middleware/api-key';
+import { requireDriverAuth } from '../middleware/auth';
 import multer from 'multer';
 import { env } from '../config/env';
 
@@ -15,5 +15,5 @@ const podUpload = multer({
 	}
 });
 
-deliveryRouter.patch('/:deliveryId/status', requireLegacyApiKey, patchDeliveryStatus);
-deliveryRouter.post('/:deliveryId/pod', requireLegacyApiKey, podUpload.single('image'), uploadProofOfDelivery);
+deliveryRouter.patch('/:deliveryId/status', requireDriverAuth, patchDeliveryStatus);
+deliveryRouter.post('/:deliveryId/pod', requireDriverAuth, podUpload.single('image'), uploadProofOfDelivery);

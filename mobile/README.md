@@ -1,6 +1,6 @@
 # Driver Mobile App
 
-Expo Router scaffold for the driver workflow. The login is intentionally mock-only for Sprint 2: it stores the entered driver UUID in navigation params. Replace it with proper driver authentication before production.
+Expo Router scaffold for the driver workflow. The login accepts a driver UUID for the current mock-login flow, exchanges it for a short-lived JWT, and uses that bearer token for driver API calls.
 
 ## Initialize
 
@@ -21,7 +21,6 @@ Create `mobile-app/.env`:
 
 ```env
 EXPO_PUBLIC_API_URL=http://192.168.1.100:3000
-EXPO_PUBLIC_API_KEY=local-development-key-change-me
 ```
 
 Use the host machine's LAN IP for a physical device. Android emulator usually reaches the host at `http://10.0.2.2:3000`; iOS simulator can use `http://127.0.0.1:3000`. The API must be reachable on the local network and the device must be on the same network.
@@ -32,4 +31,4 @@ Run:
 npx expo start
 ```
 
-The API key is suitable only for local development. Production must use authenticated driver sessions and must not embed a shared server secret in the app.
+The mobile app does not contain the server's webhook API key. Production should replace the mock driver-ID login with a real credential flow and secure token storage/refresh.

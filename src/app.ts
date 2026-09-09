@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { env } from './config/env';
 import { errorHandler, notFound } from './middleware/errors';
 import { requestId } from './middleware/request-id';
+import { authRouter } from './routes/auth.routes';
 import { deliveryRouter } from './routes/delivery.routes';
 import { driverRouter } from './routes/driver.routes';
 import { trackingRouter } from './routes/tracking.routes';
@@ -22,6 +23,7 @@ app.get('/health', (_request, response) => {
 });
 
 app.use('/api/v1/webhooks', webhookRouter);
+app.use('/api/v1/drivers', authRouter);
 app.use('/api/v1/drivers', driverRouter);
 app.use('/api/v1/deliveries', deliveryRouter);
 app.use('/api/v1/tracking', trackingRouter);

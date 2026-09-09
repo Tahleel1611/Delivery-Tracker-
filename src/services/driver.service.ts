@@ -57,6 +57,7 @@ export async function getDriverManifest(database: PrismaClient, driverId: string
 export async function updateDeliveryStatus(
   database: PrismaClient,
   deliveryId: string,
+  driverId: string,
   input: UpdateDeliveryStatusInput
 ) {
   return database.$transaction(async (transaction) => {
@@ -69,40 +70,54 @@ export async function updateDeliveryStatus(
       throw new AppError(404, 'DELIVERY_NOT_FOUND', 'The delivery was not found.');
     }
 
-    if (delivery.assignedDriverId !== input.driverId) {
+    if (delivery.assignedDriverId !== driverId) {
       throw new AppError(403, 'DRIVER_NOT_ASSIGNED', 'The driver is not assigned to this delivery.');
     }
 
     const nextStatus = input.status as DeliveryStatus;
+    const select = {
+      id: true,
+      orderRef: true,
+      customerPhone: true,
+      deliveryAddress: true,
+      status: true,
+      assignedDriverId: true,
+      trackingToken: { select: { token: true } },
+      updatedAt: true
+    } as const;
+
+    if (delivery.status === nextStatus) {
+      return {
+        delivery: await transaction.delivery.findUniqueOrThrow({ where: { id: deliveryId }, select }),
+        idempotent: true
+      };
+    }
+
     if (!allowedTransitions[delivery.status].includes(nextStatus)) {
       throw new AppError(409, 'INVALID_STATUS_TRANSITION', `A delivery cannot move from ${delivery.status} to ${nextStatus}.`);
     }
 
-    const updatedDelivery = await transaction.delivery.update({
-      where: { id: deliveryId },
-      data: { status: nextStatus },
-      select: {
-        id: true,
-        orderRef: true,
-        customerPhone: true,
-        deliveryAddress: true,
-        status: true,
-        assignedDriverId: true,
-        trackingToken: { select: { token: true } },
-        updatedAt: true
-      }
+    const changed = await transaction.delivery.updateMany({
+      where: { id: deliveryId, assignedDriverId: driverId, status: delivery.status },
+      data: { status: nextStatus }
     });
+
+    if (changed.count !== 1) {
+      throw new AppError(409, 'DELIVERY_STATUS_CHANGED', 'The delivery status changed in another request.');
+    }
+
+    const updatedDelivery = await transaction.delivery.findUniqueOrThrow({ where: { id: deliveryId }, select });
 
     await transaction.deliveryStatusLog.create({
       data: {
         deliveryId,
-        driverId: input.driverId,
+        driverId,
         status: nextStatus,
         ...(input.lat !== undefined ? { lat: input.lat } : {}),
         ...(input.lng !== undefined ? { lng: input.lng } : {})
       }
     });
 
-    return updatedDelivery;
+    return { delivery: updatedDelivery, idempotent: false };
   });
 }

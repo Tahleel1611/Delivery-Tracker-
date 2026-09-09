@@ -6,6 +6,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DATABASE_URL: z.string().min(1),
   LEGACY_WEBHOOK_API_KEY: z.string().min(16),
+  DRIVER_JWT_SECRET: z.string().min(32),
+  DRIVER_JWT_TTL: z.string().default('8h'),
   CORS_ORIGIN: z.string().default('*'),
   TRACKING_WEB_BASE_URL: z.string().url().default('http://localhost:3001'),
   TRACKING_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
