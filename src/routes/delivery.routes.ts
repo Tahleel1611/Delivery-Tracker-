@@ -9,7 +9,7 @@ export const deliveryRouter = Router();
 
 const podUpload = multer({
 	storage: multer.memoryStorage(),
-	limits: { fileSize: env.POD_MAX_FILE_SIZE_BYTES, files: 1 },
+  limits: { fileSize: env.POD_MAX_FILE_SIZE_BYTES, files: 1, fields: 4, parts: 6 },
 	fileFilter: (_request, file, callback) => {
 		callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype));
 	}

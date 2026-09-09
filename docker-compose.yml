@@ -25,13 +25,34 @@ services:
       DATABASE_URL: postgresql://tracking:tracking_password@postgres:5432/tracking?schema=public
       LEGACY_WEBHOOK_API_KEY: local-development-key-change-me
       DRIVER_JWT_SECRET: local-driver-jwt-secret-change-me-at-least-32-chars
-      DRIVER_JWT_TTL: 8h
+      DRIVER_JWT_TTL: 15m
+      DRIVER_REFRESH_TTL_DAYS: 30
+      DRIVER_LOGIN_MAX_FAILURES: 5
+      DRIVER_LOGIN_LOCK_MINUTES: 15
       CORS_ORIGIN: http://localhost:3001
       TRACKING_WEB_BASE_URL: http://localhost:3001
       TRACKING_TOKEN_TTL_DAYS: 30
       POD_MAX_FILE_SIZE_BYTES: 5242880
     ports:
       - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://tracking:tracking_password@postgres:5432/tracking?schema=public
     depends_on:
       postgres:
         condition: service_healthy

@@ -16,5 +16,7 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+USER app
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]
+CMD ["node", "dist/src/server.js"]

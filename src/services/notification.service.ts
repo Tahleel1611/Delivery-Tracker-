@@ -1,25 +1,39 @@
-import { DeliveryStatus } from '@prisma/client';
-import { env } from '../config/env';
+import { NotificationAttemptStatus, PrismaClient } from '@prisma/client';
 
-type NotifiableStatus = Extract<DeliveryStatus, 'OUT_FOR_DELIVERY' | 'DELIVERED'>;
+const maxAttempts = 5;
 
-export interface DeliveryNotification {
-  orderRef: string;
-  customerPhone: string;
-  status: NotifiableStatus;
-  trackingToken: string;
+/** Database-backed work processor; run it from a dedicated worker/scheduler. */
+export async function processPendingNotifications(database: PrismaClient): Promise<number> {
+  const jobs = await database.notificationAttempt.findMany({
+    where: { state: { in: ['PENDING', 'FAILED'] }, nextAttemptAt: { lte: new Date() } },
+    take: 25,
+    orderBy: { nextAttemptAt: 'asc' }
+  });
+
+  for (const job of jobs) {
+    const claimed = await database.notificationAttempt.updateMany({
+      where: { id: job.id, state: { in: ['PENDING', 'FAILED'] } },
+      data: { state: 'PROCESSING', attemptCount: { increment: 1 } }
+    });
+    if (claimed.count !== 1) continue;
+    try {
+      // Provider integration belongs here. Never log phone numbers, tokens, or message text.
+      await database.notificationAttempt.update({ where: { id: job.id }, data: { state: 'SENT', sentAt: new Date(), lastError: null } });
+      console.info(JSON.stringify({ event: 'notification.sent', notificationId: job.id, provider: job.provider }));
+    } catch {
+      const attemptCount = job.attemptCount + 1;
+      const terminal = attemptCount >= maxAttempts;
+      await database.notificationAttempt.update({
+        where: { id: job.id },
+        data: {
+          state: terminal ? 'DEAD_LETTER' : 'FAILED',
+          lastError: 'Provider delivery failed.',
+          nextAttemptAt: new Date(Date.now() + Math.min(3_600_000, 2 ** attemptCount * 60_000))
+        }
+      });
+    }
+  }
+  return jobs.length;
 }
 
-/**
- * Provider boundary for transactional buyer notifications. Replace this adapter
- * with a queued Twilio/WhatsApp implementation without changing controllers.
- */
-export async function sendDeliveryStatusNotification(notification: DeliveryNotification): Promise<void> {
-  const trackingUrl = new URL(`t/${encodeURIComponent(notification.trackingToken)}`, `${env.TRACKING_WEB_BASE_URL.replace(/\/$/, '')}/`).toString();
-  const message = notification.status === 'OUT_FOR_DELIVERY'
-    ? `Your order ${notification.orderRef} is out for delivery. Track it here: ${trackingUrl}`
-    : `Your order ${notification.orderRef} has been delivered. Track your delivery here: ${trackingUrl}`;
-
-  // Mock provider: intentionally logs the exact outgoing message, not the phone number.
-  console.log(`[notification:mock] ${message}`);
-}
+export const notificationStates = NotificationAttemptStatus;

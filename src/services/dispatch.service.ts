@@ -1,15 +1,15 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { env } from '../config/env';
 import { AppError } from '../lib/errors';
-import { createTrackingToken, trackingTokenExpiresAt } from '../lib/tracking-token';
+import { createTrackingToken, hashTrackingToken, trackingTokenExpiresAt } from '../lib/tracking-token';
 import { DispatchWebhookInput } from '../schemas/webhook.schema';
 
 export interface DispatchResult {
   deliveryId: string;
   orderRef: string;
   status: string;
-  trackingToken: string;
-  trackingUrl: string;
+  trackingToken?: string;
+  trackingUrl?: string;
   duplicate: boolean;
 }
 
@@ -21,13 +21,13 @@ export async function ingestDispatch(
   try {
     return await database.$transaction(async (transaction) => {
       const existingReceipt = await transaction.webhookReceipt.findUnique({
-        where: { payloadHash }
+        where: payload.sourceEventId ? { sourceEventId: payload.sourceEventId } : { payloadHash }
       });
 
       if (existingReceipt) {
         const existingDelivery = await transaction.delivery.findUnique({
           where: { orderRef: payload.orderRef },
-          select: { id: true, orderRef: true, status: true, trackingToken: true }
+          select: { id: true, orderRef: true, status: true }
         });
 
         if (!existingDelivery) {
@@ -38,8 +38,6 @@ export async function ingestDispatch(
           deliveryId: existingDelivery.id,
           orderRef: existingDelivery.orderRef,
           status: existingDelivery.status,
-          trackingToken: existingDelivery.trackingToken?.token ?? '',
-          trackingUrl: `${env.TRACKING_WEB_BASE_URL}/t/${existingDelivery.trackingToken?.token ?? ''}`,
           duplicate: true
         };
       }
@@ -61,7 +59,7 @@ export async function ingestDispatch(
       const trackingToken = createTrackingToken();
       await transaction.trackingToken.create({
         data: {
-          token: trackingToken,
+          tokenHash: hashTrackingToken(trackingToken),
           deliveryId: delivery.id,
           expiresAt: trackingTokenExpiresAt()
         }
@@ -70,6 +68,8 @@ export async function ingestDispatch(
       await transaction.webhookReceipt.create({
         data: {
           payloadHash,
+          ...(payload.sourceEventId ? { sourceEventId: payload.sourceEventId } : {}),
+          ...(payload.eventType ? { eventType: payload.eventType } : {}),
           status: 'PROCESSED',
           processedAt: new Date()
         }
@@ -89,7 +89,7 @@ export async function ingestDispatch(
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       const existingDelivery = await database.delivery.findUnique({
         where: { orderRef: payload.orderRef },
-        select: { id: true, orderRef: true, status: true, trackingToken: true }
+        select: { id: true, orderRef: true, status: true }
       });
 
       if (existingDelivery) {
@@ -97,8 +97,6 @@ export async function ingestDispatch(
           deliveryId: existingDelivery.id,
           orderRef: existingDelivery.orderRef,
           status: existingDelivery.status,
-          trackingToken: existingDelivery.trackingToken?.token ?? '',
-          trackingUrl: `${env.TRACKING_WEB_BASE_URL}/t/${existingDelivery.trackingToken?.token ?? ''}`,
           duplicate: true
         };
       }

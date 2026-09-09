@@ -82,7 +82,6 @@ export async function updateDeliveryStatus(
       deliveryAddress: true,
       status: true,
       assignedDriverId: true,
-      trackingToken: { select: { token: true } },
       updatedAt: true
     } as const;
 
@@ -116,6 +115,10 @@ export async function updateDeliveryStatus(
         ...(input.lat !== undefined ? { lat: input.lat } : {}),
         ...(input.lng !== undefined ? { lng: input.lng } : {})
       }
+    });
+
+    await transaction.notificationAttempt.create({
+      data: { deliveryId, status: nextStatus, idempotencyKey: `${deliveryId}:${nextStatus}` }
     });
 
     return { delivery: updatedDelivery, idempotent: false };

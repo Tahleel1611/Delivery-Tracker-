@@ -28,11 +28,10 @@ OCI_S3_NAMESPACE=<namespace>
 OCI_S3_BUCKET=<private-pod-bucket>
 OCI_S3_ACCESS_KEY=<customer-secret-key-id>
 OCI_S3_SECRET_KEY=<customer-secret-key>
-OCI_S3_PUBLIC_BASE_URL=https://<cdn-or-approved-object-host>
 POD_MAX_FILE_SIZE_BYTES=5242880
 ```
 
-The OCI S3 endpoint and credentials are used by `@aws-sdk/client-s3`; OCI Object Storage supports this S3-compatible request style. Prefer a private bucket and a signed delivery mechanism before exposing PoD media publicly.
+The OCI S3 endpoint and credentials are used by `@aws-sdk/client-s3`; OCI Object Storage supports this S3-compatible request style. The bucket stays private: the API stores object keys only and must generate short-lived signed access later if PoD viewing is required.
 
 ## Build and release
 

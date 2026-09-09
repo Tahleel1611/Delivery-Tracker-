@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { env } from './config/env';
+import { prisma } from './lib/prisma';
 import { errorHandler, notFound } from './middleware/errors';
 import { requestId } from './middleware/request-id';
 import { authRouter } from './routes/auth.routes';
@@ -20,6 +21,15 @@ app.use(requestId);
 
 app.get('/health', (_request, response) => {
   response.status(200).json({ status: 'ok' });
+});
+
+app.get('/ready', async (_request, response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    response.status(200).json({ status: 'ready' });
+  } catch {
+    response.status(503).json({ status: 'not_ready' });
+  }
 });
 
 app.use('/api/v1/webhooks', webhookRouter);

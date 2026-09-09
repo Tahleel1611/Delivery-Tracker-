@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tracking-web/package-lock.json
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run build
+      - run: npm test
+      - run: npx prisma validate
+        env:
+          DATABASE_URL: postgresql://tracking:tracking_password@localhost:5432/tracking?schema=public
+      - run: npm ci
+        working-directory: tracking-web
+      - run: npm run build
+        working-directory: tracking-web
+      - run: docker build -t delivery-tracking-api:ci .
+      - run: docker build -t delivery-tracking-web:ci ./tracking-web

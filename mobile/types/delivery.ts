@@ -14,7 +14,8 @@ export interface Delivery {
   assignedDriverId: string | null;
   createdAt: string;
   updatedAt: string;
-  podImageUrl?: string | null;
+  // PoD stays private; the driver API never returns a permanent object URL.
+  podObjectKey?: string | null;
 }
 
 export interface DriverManifest {

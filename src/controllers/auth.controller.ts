@@ -1,25 +1,21 @@
 import type { RequestHandler } from 'express';
 import { prisma } from '../lib/prisma';
-import { AppError } from '../lib/errors';
-import { driverLoginSchema } from '../schemas/auth.schema';
-import { signDriverToken } from '../middleware/auth';
+import { driverLoginSchema, refreshDriverSessionSchema } from '../schemas/auth.schema';
+import { loginWithPassword, rotateDriverSession } from '../services/auth.service';
 
 export const loginDriver: RequestHandler = async (request, response, next) => {
   try {
-    const { driverId } = driverLoginSchema.parse(request.body);
-    const driver = await prisma.driver.findUnique({
-      where: { id: driverId },
-      select: { id: true, name: true, status: true }
-    });
+    const { username, password } = driverLoginSchema.parse(request.body);
+    response.status(200).json({ data: await loginWithPassword(prisma, username, password), requestId: request.requestId });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    if (!driver || driver.status !== 'ACTIVE') {
-      throw new AppError(401, 'DRIVER_LOGIN_FAILED', 'The driver is not active or does not exist.');
-    }
-
-    response.status(200).json({
-      data: { accessToken: signDriverToken(driver.id), driver },
-      requestId: request.requestId
-    });
+export const refreshDriverSession: RequestHandler = async (request, response, next) => {
+  try {
+    const { refreshToken } = refreshDriverSessionSchema.parse(request.body);
+    response.status(200).json({ data: await rotateDriverSession(prisma, refreshToken), requestId: request.requestId });
   } catch (error) {
     next(error);
   }

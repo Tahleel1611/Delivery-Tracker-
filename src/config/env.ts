@@ -7,7 +7,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   LEGACY_WEBHOOK_API_KEY: z.string().min(16),
   DRIVER_JWT_SECRET: z.string().min(32),
-  DRIVER_JWT_TTL: z.string().default('8h'),
+  DRIVER_JWT_TTL: z.string().default('15m'),
+  DRIVER_REFRESH_TTL_DAYS: z.coerce.number().int().positive().max(90).default(30),
+  DRIVER_LOGIN_MAX_FAILURES: z.coerce.number().int().positive().max(20).default(5),
+  DRIVER_LOGIN_LOCK_MINUTES: z.coerce.number().int().positive().max(1440).default(15),
   CORS_ORIGIN: z.string().default('*'),
   TRACKING_WEB_BASE_URL: z.string().url().default('http://localhost:3001'),
   TRACKING_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
@@ -17,7 +20,6 @@ const envSchema = z.object({
   OCI_S3_BUCKET: z.string().optional(),
   OCI_S3_ACCESS_KEY: z.string().optional(),
   OCI_S3_SECRET_KEY: z.string().optional(),
-  OCI_S3_PUBLIC_BASE_URL: z.string().url().optional(),
   POD_MAX_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(5242880),
   LOG_LEVEL: z.string().default('info')
 });

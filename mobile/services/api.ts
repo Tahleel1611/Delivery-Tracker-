@@ -2,9 +2,15 @@ import type { Delivery, DriverManifest } from '../types/delivery';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3000';
 let accessToken: string | undefined;
+let refreshToken: string | undefined;
 
 export function setAccessToken(token: string): void {
   accessToken = token;
+}
+
+export function setSession(access: string, refresh: string): void {
+  accessToken = access;
+  refreshToken = refresh;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -25,12 +31,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body.data as T;
 }
 
-export function loginDriver(driverId: string): Promise<{ accessToken: string }> {
-  return request<{ accessToken: string }>('/api/v1/drivers/login', {
+export function loginDriver(username: string, password: string): Promise<{ accessToken: string; refreshToken: string; driver: { id: string } }> {
+  return request<{ accessToken: string; refreshToken: string; driver: { id: string } }>('/api/v1/drivers/login', {
     method: 'POST',
-    body: JSON.stringify({ driverId })
+    body: JSON.stringify({ username, password })
   }).then((result) => {
-    setAccessToken(result.accessToken);
+    setSession(result.accessToken, result.refreshToken);
+    return result;
+  });
+}
+
+export function refreshDriverSession(): Promise<{ accessToken: string; refreshToken: string }> {
+  if (!refreshToken) return Promise.reject(new Error('Your session has expired. Please sign in again.'));
+  return request<{ accessToken: string; refreshToken: string }>('/api/v1/drivers/refresh', {
+    method: 'POST',
+    body: JSON.stringify({ refreshToken })
+  }).then((result) => {
+    setSession(result.accessToken, result.refreshToken);
     return result;
   });
 }

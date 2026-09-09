@@ -10,7 +10,8 @@
     "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "worker:notifications": "tsx scripts/notification-worker.ts"
   },
   "keywords": [],
   "author": "",

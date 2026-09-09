@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../lib/errors';
+import { hashTrackingToken } from '../lib/tracking-token';
 
 const addressSnippet = (address: string): string => {
   const compact = address.replace(/\s+/g, ' ').trim();
@@ -15,7 +16,7 @@ const firstName = (name: string): string => name.trim().split(/\s+/)[0] ?? '';
  */
 export async function getPublicTracking(database: PrismaClient, token: string) {
   const trackingToken = await database.trackingToken.findUnique({
-    where: { token },
+    where: { tokenHash: hashTrackingToken(token) },
     select: {
       expiresAt: true,
       delivery: {

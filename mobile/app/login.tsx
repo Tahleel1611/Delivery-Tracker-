@@ -4,17 +4,18 @@ import { router } from 'expo-router';
 import { loginDriver } from '../services/api';
 
 export default function LoginScreen() {
-  const [driverId, setDriverId] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   async function handleLogin() {
-    if (!driverId.trim()) {
-      Alert.alert('Driver ID required', 'Enter the UUID assigned to this driver.');
+    if (!username.trim() || !password) {
+      Alert.alert('Credentials required', 'Enter your username and password.');
       return;
     }
 
     try {
-      await loginDriver(driverId.trim());
-      router.replace({ pathname: '/manifest', params: { driverId: driverId.trim() } });
+      const session = await loginDriver(username.trim(), password);
+      router.replace({ pathname: '/manifest', params: { driverId: session.driver.id } });
     } catch (error) {
       Alert.alert('Sign in failed', error instanceof Error ? error.message : 'Unable to sign in.');
     }
@@ -24,16 +25,17 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.eyebrow}>DELIVERY OPERATIONS</Text>
       <Text style={styles.title}>Driver sign in</Text>
-      <Text style={styles.subtitle}>Enter your driver ID to load today's manifest.</Text>
+      <Text style={styles.subtitle}>Sign in to load today's manifest.</Text>
       <TextInput
         autoCapitalize="none"
         autoCorrect={false}
-        placeholder="Driver UUID"
+        placeholder="Username"
         placeholderTextColor="#82909b"
-        value={driverId}
-        onChangeText={setDriverId}
+        value={username}
+        onChangeText={setUsername}
         style={styles.input}
       />
+      <TextInput autoCapitalize="none" autoCorrect={false} secureTextEntry placeholder="Password" placeholderTextColor="#82909b" value={password} onChangeText={setPassword} style={styles.input} />
       <Pressable style={styles.primaryButton} onPress={() => void handleLogin()}>
         <Text style={styles.primaryButtonText}>View manifest</Text>
       </Pressable>

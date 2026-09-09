@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env';
 import { AppError } from '../lib/errors';
@@ -36,7 +36,11 @@ export async function uploadPodImage(file: { buffer: Buffer; mimetype: string })
     ContentDisposition: 'inline'
   }));
 
-  return env.OCI_S3_PUBLIC_BASE_URL
-    ? `${env.OCI_S3_PUBLIC_BASE_URL.replace(/\/$/, '')}/${key}`
-    : `${config.endpoint.replace(/\/$/, '')}/${config.namespace}/${config.bucket}/${key}`;
+  return key;
+}
+
+export async function deletePodImage(key: string): Promise<void> {
+  const config = getStorageConfig();
+  if (!client) return;
+  await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
 }
