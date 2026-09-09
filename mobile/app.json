@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Delivery Driver",
+    "slug": "delivery-driver",
+    "scheme": "delivery-driver",
+    "plugins": ["expo-router", "expo-image-picker"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

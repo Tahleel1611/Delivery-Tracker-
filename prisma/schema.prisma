@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DeliveryStatus {
+  READY_FOR_DISPATCH
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum WebhookReceiptStatus {
+  PROCESSED
+  FAILED
+}
+
+model Driver {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String         @db.VarChar(160)
+  phone          String         @db.VarChar(32)
+  status         DriverStatus   @default(ACTIVE)
+  vehicleDetails Json?          @map("vehicle_details")
+  deliveries     Delivery[]
+  statusLogs     DeliveryStatusLog[]
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("drivers")
+}
+
+model Delivery {
+  id               String              @id @default(uuid()) @db.Uuid
+  orderRef         String              @unique @map("order_ref") @db.VarChar(120)
+  customerPhone    String              @map("customer_phone") @db.VarChar(32)
+  deliveryAddress  String              @map("delivery_address") @db.Text
+  status           DeliveryStatus      @default(READY_FOR_DISPATCH)
+  assignedDriverId String?             @map("assigned_driver_id") @db.Uuid
+  assignedDriver   Driver?             @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
+  statusLogs       DeliveryStatusLog[]
+  trackingToken    TrackingToken?
+  podImageUrl      String?             @map("pod_image_url") @db.Text
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  @@index([assignedDriverId])
+  @@index([status])
+  @@map("deliveries")
+}
+
+model TrackingToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique @db.VarChar(128)
+  deliveryId String   @unique @map("delivery_id") @db.Uuid
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("tracking_tokens")
+}
+
+model DeliveryStatusLog {
+  id         String         @id @default(uuid()) @db.Uuid
+  deliveryId String         @map("delivery_id") @db.Uuid
+  status     DeliveryStatus
+  timestamp  DateTime       @default(now())
+  lat        Decimal?       @db.Decimal(9, 6)
+  lng        Decimal?       @db.Decimal(9, 6)
+  delivery   Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driverId   String?        @map("driver_id") @db.Uuid
+  driver     Driver?        @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
+  @@index([deliveryId, timestamp])
+  @@map("delivery_status_logs")
+}
+
+model WebhookReceipt {
+  id          String               @id @default(uuid()) @db.Uuid
+  payloadHash String               @unique @map("payload_hash") @db.VarChar(64)
+  status      WebhookReceiptStatus @default(PROCESSED)
+  processedAt DateTime?            @map("processed_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("webhook_receipts")
+}

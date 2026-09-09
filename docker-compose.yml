@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tracking
+      POSTGRES_PASSWORD: tracking_password
+      POSTGRES_DB: tracking
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracking -d tracking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://tracking:tracking_password@postgres:5432/tracking?schema=public
+      LEGACY_WEBHOOK_API_KEY: local-development-key-change-me
+      CORS_ORIGIN: http://localhost:3001
+      TRACKING_WEB_BASE_URL: http://localhost:3001
+      TRACKING_TOKEN_TTL_DAYS: 30
+      POD_MAX_FILE_SIZE_BYTES: 5242880
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  tracking-web:
+    build:
+      context: ./tracking-web
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      TRACKING_API_BASE_URL: http://api:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  
