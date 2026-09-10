@@ -9,6 +9,11 @@ type TrackingData = {
   statusLogs: { status: DeliveryStatus; timestamp: string }[];
 };
 
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  return { title: `Track ${token.slice(0, 8)} | OMS`, description: 'View the current delivery status.' };
+}
+
 const apiBaseUrl = process.env.TRACKING_API_BASE_URL ?? 'http://localhost:3000';
 
 async function fetchTracking(token: string): Promise<TrackingData | null> {

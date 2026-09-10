@@ -59,11 +59,20 @@ services:
 
   tracking-web:
     build:
-      context: ./tracking-web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: tracking-web/Dockerfile
     environment:
+      NODE_ENV: production
       PORT: 3001
       TRACKING_API_BASE_URL: http://api:3000
+      DATABASE_URL: postgresql://tracking:tracking_password@postgres:5432/tracking?schema=public
+      AUTH_SECRET: local-compose-auth-secret-change-me-at-least-32-chars
+      OCI_S3_ENDPOINT: https://objectstorage.local
+      OCI_S3_BUCKET: delivery-pod
+      OCI_S3_ACCESS_KEY: local-compose-access-key
+      OCI_S3_SECRET_KEY: local-compose-secret-key
+      EMAIL_SERVER: smtp://localhost:1025
+      EMAIL_FROM: OMS <no-reply@example.com>
     ports:
       - "3001:3001"
     depends_on:
